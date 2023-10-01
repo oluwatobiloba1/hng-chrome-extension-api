@@ -60,7 +60,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
     }
     
     if(!chunk){
-        return res.status(500).json({message: 'chunk is required'})
+        return res.status(400).json({message: 'chunk is required'})
     }
     
     const previousChunk = fs.readFileSync(writeToFile)
@@ -69,7 +69,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
 
     fs.writeFileSync(writeToFile, buffer);
     
-    return res.status(200).json({message: 'chunk uploaded successfully', id})
+    return res.status(201).json({message: 'chunk uploaded successfully', id})
    
     
 }
