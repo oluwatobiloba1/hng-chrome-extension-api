@@ -1,15 +1,17 @@
 import { Deepgram } from '@deepgram/sdk';
 import fs from 'node:fs'
+import dotenv from 'dotenv'
+
+dotenv.config();
 
 // Your Deepgram API Key
-const deepgramApiKey = "";
+const deepgramApiKey = process.env.DEEP_KEY??'';
 
 const mimetype = "video/webm";
 
 let source;
 
 export const transcriptHandler = async (file:string) => {
-    console.log(file)
     
     const deepgram = new Deepgram(deepgramApiKey);
     
@@ -24,8 +26,6 @@ export const transcriptHandler = async (file:string) => {
         // File is local
         // Open the audio file
         const audio = fs.readFileSync(file);
-    
-        console.log(audio)
         // Set the source
         source = {
             buffer: audio,
@@ -33,20 +33,17 @@ export const transcriptHandler = async (file:string) => {
         };
     }
     
-    // Send the audio to Deepgram and get the response
-    deepgram.transcription
+    try {
+        const transcript = deepgram.transcription
         .preRecorded(source, {
             smart_format: true,
             model: "nova",
         })
-        .then((response) => {
-            // Write the response to the console
-            console.dir(response, { depth: null });
-    
-            // Write only the transcript to the console
-            //console.dir(response.results.channels[0].alternatives[0].transcript, { depth: null });
-        })
-        .catch((err) => {
-            console.log(err);
-        });
+
+        return (await transcript)?.results?.channels[0].alternatives[0].transcript;
+        
+    } catch (error) {
+        console.log(error);
+        return null
+    }
 }
