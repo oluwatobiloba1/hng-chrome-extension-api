@@ -7,9 +7,34 @@
 </head>
 <body>
     
-    <form action="/upload-video" enctype="multipart/form-data" method="post">
+    <form action="" method="post">
         <input type="file" name="upload_file" id="upload">
         <input type="submit" value="submit" class="btn btn-default">
     </form>
 </body>
+
+<script>
+    const upload = document.getElementById('upload');
+    upload.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        const fileReader = new FileReader();
+        fileReader.readAsDataURL(file);
+
+        fileReader.addEventListener('load', (e) => {
+            const readerUrl = e.target.result;
+            const base64Url = readerUrl.split(',')[1];
+            console.log(base64Url);
+
+            fetch('/start', {
+                method: 'POST',
+                body: JSON.stringify({
+                    chunk: base64Url
+                }),
+            }).then(res => res.json())
+            .then(res => console.log(res))
+            .catch(err => console.log(err));
+    });
+
+    });
+</script>
 </html>

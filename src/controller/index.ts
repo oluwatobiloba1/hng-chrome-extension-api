@@ -1,38 +1,76 @@
 import { Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 import fs from 'node:fs'
 import path from 'node:path'
+import Video from '../server/video';
+import { transcriptHandler } from '../service';
 
 require('dotenv').config()
 
-import {v2 as cloudinary} from 'cloudinary';
-          
-cloudinary.config({ 
-  cloud_name: process.env.CLOUD_NAME, 
-  api_key: process.env.CLOUD_KEY, 
-  api_secret: process.env.CLOUD_SECRET 
-});
 
-console.log(process.env.CLOUD_NAME, process.env.CLOUD_KEY, process.env.CLOUD_SECRET)
 
-const uploadVideo = async (req: Request, res: Response) => {
-    console.log(req.file)
-    const fileToUpload = path.join(__dirname,'../../', `/uploads/${req?.file?.filename}` )
+export const startUpload = async (req: Request, res: Response) => {
 
-    if(req?.file){
-        await cloudinary.uploader.upload_large(fileToUpload,
-        { resource_type: "video",use_filename:true }, 
-        function(error, result) {
-            if(error){
-                console.log(error)
-                throw new Error('Something went wrong')
-            }
-            else{
-                console.log(result)
-                return res.send({message:'uploaded successfully', url: result?.secure_url})
-            }
-            });
+    const fileId = uuidv4();
+    const filePath = `${process.env.BASE_URL}/${fileId}.webm`;
+
+    const videoData = {
+        fileId: fileId,
+        format: 'webm',
+        path: filePath
     }
+
+    const newVideo = new Video(videoData);
+        await newVideo.save();
+        if(!newVideo){
+            return res.status(500).json({message: 'starting recording failed'})
+        }
+        console.log(newVideo.id)
+        return res.status(200).json({message: 'starting recording successfully', id: newVideo.id})
 
 }
 
-module.exports = uploadVideo;
+
+export const uploadVideo = async (req: Request, res: Response) => {
+
+    const {chunk} = req.body;
+    const {id} = req.params;
+    const currentVideo = await Video.findById(id);
+    console.log(currentVideo)
+
+    if(!currentVideo){
+        return res.status(500).json({message: 'this video does not exist'})
+    }
+    
+    const writeToFile = path.join(__dirname,'../', `public/uploads/${currentVideo.fileId}.webm`);
+    console.log(writeToFile)
+    
+    const writeableStream = fs.createWriteStream(writeToFile);
+    if(req.url === `/finish/${id}`){
+        writeableStream.end();
+        // await transcriptHandler(writeToFile)
+        return res.status(200).json({message: 'Video uploaded successfully', video: {id: currentVideo.id,format: currentVideo.format, path: currentVideo.path}})
+    
+    }
+
+    if(!chunk){
+        return res.status(500).json({message: 'chunk is required'})
+    }
+
+    const buffer = Buffer.from(chunk, 'base64');
+
+    writeableStream.write(buffer);
+
+    writeableStream.on('error', (err) => {
+        console.error('Error writing to writable stream:', err);
+        return;
+    });
+    return res.status(200).json({message: 'chunk uploaded successfully', id})
+   
+    
+}
+
+// export const getVideo = async (req: Request, res: Response) => {
+//     
+// }
+
