@@ -12,12 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadVideo = exports.startUpload = void 0;
+exports.getVideo = exports.uploadVideo = exports.startUpload = void 0;
 const uuid_1 = require("uuid");
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const video_1 = __importDefault(require("../server/video"));
-const service_1 = require("../service");
+const publisher_1 = require("../service/publisher");
 require('dotenv').config();
 const startUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const fileId = (0, uuid_1.v4)();
@@ -43,26 +43,38 @@ const uploadVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     const { id } = req.params;
     const currentVideo = yield video_1.default.findById(id);
     if (!currentVideo) {
-        return res.status(500).json({ message: 'this video does not exist' });
+        return res.status(400).json({ message: 'this video does not exist' });
     }
     const writeToFile = node_path_1.default.join(__dirname, '../', `public/uploads/${currentVideo.fileId}.webm`);
     if (req.url === `/finish/${id}`) {
-        const transcript = yield (0, service_1.transcriptHandler)(writeToFile);
-        console.log(transcript);
-        const updatedVideo = yield video_1.default.findByIdAndUpdate(id, { transcript: transcript }, { new: true });
-        if (!updatedVideo) {
-            return res.status(500).json({ message: 'sorry something went wrong' });
-        }
-        return res.status(200).json({
-            video: { id: updatedVideo.id, transcript: updatedVideo.transcript, path: currentVideo.path }
-        });
+        const fileUrl = `${process.env.BASE_URL}/${currentVideo.fileId}.webm`;
+        (0, publisher_1.publisher)(writeToFile, id);
+        return res.send({ message: 'generating transcript', file: fileUrl });
+        // const transcript = await transcriptHandler(writeToFile)
+        // const updatedVideo = await Video.findByIdAndUpdate(id, {transcript: transcript}, {new: true});
+        // if(!updatedVideo){
+        //     return res.status(500).json({message: 'sorry something went wrong'})    
+        // }
+        // return res.status(200).json({ 
+        // video: {id: updatedVideo.id,transcript: updatedVideo.transcript, path: currentVideo.path}})
     }
     if (!chunk) {
-        return res.status(500).json({ message: 'chunk is required' });
+        return res.status(400).json({ message: 'chunk is required' });
     }
     const previousChunk = node_fs_1.default.readFileSync(writeToFile);
     const buffer = Buffer.concat([previousChunk, Buffer.from(chunk, 'base64')]);
     node_fs_1.default.writeFileSync(writeToFile, buffer);
-    return res.status(200).json({ message: 'chunk uploaded successfully', id });
+    return res.status(201).json({ message: 'chunk uploaded successfully', id });
 });
 exports.uploadVideo = uploadVideo;
+const getVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const currentVideo = yield video_1.default.findById(id);
+    if (!currentVideo) {
+        return res.status(400).json({ message: 'this video does not exist' });
+    }
+    return res.status(200).json({
+        video: { id: currentVideo.id, transcript: currentVideo.transcript, path: currentVideo.path }
+    });
+});
+exports.getVideo = getVideo;
