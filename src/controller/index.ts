@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import Video from '../server/video';
 import { transcriptHandler } from '../service';
+import {publisher} from '../service/publisher'
 
 require('dotenv').config()
 
@@ -42,20 +43,24 @@ export const uploadVideo = async (req: Request, res: Response) => {
     const currentVideo = await Video.findById(id);
 
     if(!currentVideo){
-        return res.status(500).json({message: 'this video does not exist'})
+        return res.status(400).json({message: 'this video does not exist'})
     }
     
     const writeToFile = path.join(__dirname,'../', `public/uploads/${currentVideo.fileId}.webm`);
     
     if(req.url === `/finish/${id}`){
-        const transcript = await transcriptHandler(writeToFile)
+        const fileUrl = `${process.env.BASE_URL}/${currentVideo.fileId}.webm`;
+        publisher(writeToFile, id)
 
-        const updatedVideo = await Video.findByIdAndUpdate(id, {transcript: transcript}, {new: true});
-        if(!updatedVideo){
-            return res.status(500).json({message: 'sorry something went wrong'})    
-        }
-        return res.status(200).json({ 
-        video: {id: updatedVideo.id,transcript: updatedVideo.transcript, path: currentVideo.path}})
+        return res.send({message:'generating transcript', file: fileUrl});
+        // const transcript = await transcriptHandler(writeToFile)
+
+        // const updatedVideo = await Video.findByIdAndUpdate(id, {transcript: transcript}, {new: true});
+        // if(!updatedVideo){
+        //     return res.status(500).json({message: 'sorry something went wrong'})    
+        // }
+        // return res.status(200).json({ 
+        // video: {id: updatedVideo.id,transcript: updatedVideo.transcript, path: currentVideo.path}})
         
     }
     
@@ -74,4 +79,17 @@ export const uploadVideo = async (req: Request, res: Response) => {
     
 }
 
+
+export const getVideo = async (req: Request, res: Response) => {
+        
+        const {id} = req.params;
+        const currentVideo = await Video.findById(id);
+        
+        if(!currentVideo){
+            return res.status(400).json({message: 'this video does not exist'})
+        }
+        
+        return res.status(200).json({ 
+            video: {id: currentVideo.id,transcript: currentVideo.transcript, path: currentVideo.path}})
+}
 
