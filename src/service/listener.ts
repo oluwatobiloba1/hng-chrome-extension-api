@@ -2,11 +2,14 @@ import Video from '../server/video';
 import amqp from 'amqplib';
 import {transcriptHandler} from './index'
 import { Response } from 'express';
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 
 export async function connect(){
     try{
-        const connection = await amqp.connect("amqps://hhlzklho:p7RP8QipZIZ3zXGgzJKZDxgQ_EfOYbST@chimpanzee.rmq.cloudamqp.com/hhlzklho");
+        const connection = await amqp.connect(process.env.AMQP_URL as string);
         const channel = await connection.createChannel();
         const result = await channel.assertQueue("transcriptions");
 
