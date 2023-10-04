@@ -97,7 +97,7 @@ export const getAllVideo = async (req: Request, res: Response) => {
         const currentVideo = await Video.find();
         
         if(!currentVideo){
-            return res.status(400).json({message: 'this video does not exist'})
+            return res.status(400).json({message: 'There are no videos'})
         }
         
         return res.status(200).send(currentVideo)
