@@ -92,4 +92,14 @@ export const getVideo = async (req: Request, res: Response) => {
         return res.status(200).json({ 
             video: {id: currentVideo.id,transcript: currentVideo.transcript, path: currentVideo.path}})
 }
+export const getAllVideo = async (req: Request, res: Response) => {
+        
+        const currentVideo = await Video.find();
+        
+        if(!currentVideo){
+            return res.status(400).json({message: 'this video does not exist'})
+        }
+        
+        return res.status(200).send(currentVideo)
+}
 

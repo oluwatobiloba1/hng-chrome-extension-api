@@ -2,7 +2,7 @@ import express, { Request } from 'express'
 import path from 'node:path'
 import multer, {FileFilterCallback, } from  'multer';
 
-import { getVideo, startUpload, uploadVideo } from '../controller';
+import { getVideo, startUpload, uploadVideo, getAllVideo } from '../controller';
 
 const router = express.Router()
 /**
@@ -17,6 +17,13 @@ const router = express.Router()
  *      - required: true
  */
 router.get('/video/:id', getVideo)
+/**
+ * @openapi
+ * /video:
+ *  get:
+ *    tag: video 
+ */
+router.get('/video', getAllVideo)
 
 /**
  * @openapi
